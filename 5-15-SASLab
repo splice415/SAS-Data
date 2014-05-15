@@ -1,0 +1,58 @@
+filename market url "https://netfiles.umn.edu/users/nacht001/www/nachtsheim/Kutner/Appendix%20C%20Data%20Sets/APPENC03.txt";
+
+data market;
+infile market;
+input ID share price gross discount promotion month$ year;
+/*year is dummy variable*/
+year_a=0; year_b=0; year_c=0;
+/*2000 is indicator*/
+if year = 1999 then year_a = 1;
+if year = 2001 then year_b = 1;
+if year = 2002 then year_c = 1;
+price_square = price**2;
+price_dis = price*discount;	
+price_prom = price*promotion;
+run;
+
+proc print data=market;
+run;
+
+/*Best Subset Selection*/
+proc reg data=market outest=out;
+model share = price gross discount promotion year_a year_b year_c / selection = rsquare adjrsq Cp aic sbc b best=3; *take 2^7 possible models and take best 3 of each group.;
+*plot r. * p.;
+run;
+quit;
+
+proc gplot data=out;
+plot _Cp_*_P_ _P_*_P_ / overlay;
+run;
+
+/*Stepwise Forward Selection*/
+proc reg data=market;
+model share = price gross discount promotion year_a year_b year_c / selection = stepwise SLentry = 0.1 SLstay = 0.1;
+run;
+quit;
+
+/*Backward Selection*/
+proc reg data=market;
+model share = price gross discount promotion year_a year_b year_c / selection = backward SLstay = 0.1;
+run;
+quit;
+
+/*With interactions*/
+proc reg data=market;
+model share = price gross discount promotion year_a year_b year_c price_square price_dis price_prom / selection = rsquare adjrsq Cp aic sbc b best=3;
+run;
+quit;
+*subset selection result: either 1.discount,promotion, and price_promo or 2. discount,promotion, year_b and price_promo ;
+proc reg data=market;
+model share = price gross discount promotion year_a year_b year_c price_square price_dis price_prom / selection = stepwise SLentry=0.1 SLstay=0.1;
+run;
+quit;
+*stepwise selection result: discount, promotion, and price_promo;
+proc reg data=market;
+model share = price gross discount promotion year_a year_b year_c price_square price_dis price_prom / selection = backward SLstay=0.1;
+run;
+quit;
+*backward selection result:price, discount, and promotion; 
